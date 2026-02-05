@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ペット育成システム</title>
+<style>
+:root{
+  --bg:#0e1320; --card:#141b34; --accent:#6cf; --ok:#7CFF8B;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; padding:24px; color:#e8ecff; font-family:system-ui;
+  background:
+    radial-gradient(1200px 600px at 10% -10%, #1b2450, transparent),
+    linear-gradient(180deg,#0b1022,#0e1320);
+}
+h1{letter-spacing:.06em}
+.pet-area{display:grid; grid-template-columns:1fr 1fr; gap:28px; max-width:1100px; margin:auto}
+.card{
+  background:linear-gradient(180deg,#18204a,#0f1430);
+  border-radius:18px; padding:18px; box-shadow:0 20px 60px rgba(0,0,0,.35);
+}
+.row{display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+.center{justify-content:center}
+.badge{opacity:.8; font-size:12px}
+.big{
+  font-size:18px; padding:16px 18px; border-radius:14px;
+  background:#9bB4D0; border:1px solid #fbfaa0; cursor:pointer
+}
+.big:hover{filter:brightness(1.1)}
+.pet-wrap{position:relative; width:300px; height:300px; margin:auto}
+.pet-wrap img{position:absolute; bottom:0; left:50%; transform:translateX(-50%); width:220px}
+.progress{
+  width:100%; height:10px; border-radius:999px; background:#0b1022; overflow:hidden
+}
+.progress > i{
+  display:block; height:100%; background:linear-gradient(90deg,#6cf,#7CFF8B);
+  width:0%; transition:width .4s ease
+}
+.missions{display:grid; grid-template-columns:repeat(2,1fr); gap:14px}
+.mission{
+  background:linear-gradient(180deg,#1a2358,#12194a);
+  border-radius:16px; padding:16px; min-height:120px;
+  display:flex; flex-direction:column; gap:10px; justify-content:space-between
+}
+.mission strong{font-size:18px}
+.ok{background:linear-gradient(90deg,#34d399,#22c55e); color:#032b18}
+.fx-evo{animation:evo .8s ease}
+@keyframes evo{
+  0%{transform:translateX(-50%) scale(.9); filter:drop-shadow(0 0 0 transparent)}
+  60%{transform:translateX(-50%) scale(1.15); filter:drop-shadow(0 0 24px #7cff8b)}
+  100%{transform:translateX(-50%) scale(1)}
+}
+select{background:#0f1430; color:#e8ecff; border:1px solid #2b3aa0; border-radius:10px; padding:10px}
+</style>
+</head>
+
+<body>
+<h1 class="center">ペット育成システム</h1>
+
+<div class="pet-area">
+
+  <!-- 部署ペット（共有・固定） -->
+  <section class="card">
+    <h2>部署ペット</h2>
+    <div class="pet-wrap">
+      <img id="dept-pet" src="images/shared_lv1.png">
+    </div>
+    <div class="row">
+      <span>成長度 <b id="dept-xp">0</b></span>
+      <span class="badge">最終成長まで残り <b id="dept-rem">50</b></span>
+    </div>
+    <div class="progress"><i id="dept-bar"></i></div>
+    <div class="row center">
+      <button class="big" onclick="takeDept()">ミッション受領</button>
+    </div>
+    <div id="dept-ms" class="missions"></div>
+  </section>
+
+  <!-- マイペット（多種・転生） -->
+  <section class="card">
+    <h2>マイペット</h2>
+    <div class="row center">
+      <select onchange="setMyType(this.value)">
+        <option value="inu">↓いぬ</option>
+        <option value="ebiten">ｴﾋﾞﾃﾝ!</option>
+        <option value="sunahebi">スナヘビ</option>
+        <option value="DJcat">DJネコ</option>
+        <option value="manigon">過多角形</option>
+        <option value="glowseas">光海</option>
+      </select>
+    </div>
+    <div class="pet-wrap">
+      <img id="my-pet">
+    </div>
+    <div class="row">
+      <span>成長度 <b id="my-xp">0</b></span>
+      <span class="badge">最終成長まで残り <b id="my-rem">30</b></span>
+    </div>
+    <div class="progress"><i id="my-bar"></i></div>
+    <div class="row center">
+      <button class="big" onclick="takeMy()">ミッション受領</button>
+      <button class="big" onclick="rebirth()">転生</button>
+    </div>
+    <div id="my-ms" class="missions"></div>
+  </section>
+
+</div>
+
+<script>
+// ===== データ定義（増やし放題）=====
+const DEPT={need:150, base:"images/shared_lv1.png", mid:"images/shared_lv2.png", evo:"images/shared_lv3.png"};
+const MY={
+  inu:{need:100, base:"images/inu_lv1.png", mid:"images/inu_lv2.png", evo:"images/inu_lv3.png"},
+  ebiten:{need:100, base:"images/ebiten_lv1.png", mid:"images/ebiten_lv2.png", evo:"images/ebiten_lv3.png"},
+  sunahebi:{need:100, base:"images/sunahebi_lv1.png", mid:"images/sunahebi_lv2.png", evo:"images/sunahebi_lv3.png"},
+  DJcat:{need:100, base:"images/DJcat_lv1.png", mid:"images/DJcat_lv2.png", evo:"images/DJcat_lv3.png"},
+  manigon:{need:100, base:"images/manigon_lv1.png", mid:"images/manigon_lv2.png", evo:"images/manigon_lv3.png"},
+  glowseas:{need:100, base:"images/glowseas_lv1.png", mid:"images/glowseas_lv2.png", evo:"images/glowseas_lv3.png"}
+};
+
+// タスク種類：5→増量（カテゴリ×重み）
+const TASKS=[
+  {t:"掃除をする", w:2},{t:"整頓をする",w:2},{t:"換気をする",w:1},{t:"片付けをする",w:2},{t:"休憩する",w:1},{t:"会議の記録を取る",w:5},{t:"足りない備品の補充",w:3},
+  {t:"新人のフォローor上司に質問",w:3},{t:"植物に水やり",w:1},{t:"確認",w:2},{t:"他社との連絡",w:4}
+];
+
+// ===== 状態 =====
+let deptXp=0, myXp=0, myType="inu", reb=0;
+
+// ===== ユーティリティ =====
+const pick=(arr,n)=>arr.sort(()=>Math.random()-.5).slice(0,n);
+const weightedPick=()=>{
+  const bag=[]; TASKS.forEach(x=>bag.push(...Array(x.w).fill(x.t)));
+  return bag[Math.random()*bag.length|0];
+};
+
+// ===== 表示更新 =====
+function updDept(){
+  const img=document.getElementById("dept-pet");
+  img.classList.remove("fx-evo");
+  if(deptXp < DEPT.need/2) img.src=DEPT.base;
+  else if(deptXp < DEPT.need) img.src=DEPT.mid;
+  else {
+  img.src=DEPT.evo;
+  img.classList.add("fx-evo"); }
+  document.getElementById("dept-xp").textContent=deptXp;
+  document.getElementById("dept-rem").textContent=Math.max(0,DEPT.need-deptXp);
+  document.getElementById("dept-bar").style.width=Math.min(100,deptXp/DEPT.need*100)+"%";
+}
+function updMy(){
+  const p=MY[myType],
+        img=document.getElementById("my-pet"),
+        bar=document.getElementById("my-bar");
+
+  img.classList.remove("fx-evo");
+
+  if(myXp < p.need/2){
+    img.src=p.base;
+    bar.style.width=(myXp/(p.need/2)*100)+"%";
+  }
+  else if(myXp < p.need){
+    if(!img.dataset.mid){
+      img.dataset.mid="1";
+      midEvoEffect(img, bar);
+    }
+    img.src=p.mid;
+    bar.style.width=((myXp-p.need/2)/(p.need/2)*100)+"%";
+  }
+  else{
+    img.src=p.evo;
+    img.classList.add("fx-evo");
+    bar.style.width="100%";
+  }
+
+  document.getElementById("my-xp").textContent=myXp;
+  document.getElementById("my-rem").textContent=Math.max(0,p.need-myXp);
+}
+
+
+// ===== mid進化演出 =====
+function midEvoEffect(img, bar){
+  bar.style.transition="none";
+  bar.style.width="100%"; // 一気に満タン
+  setTimeout(()=>{
+    bar.style.transition="width .4s ease";
+    bar.style.width="0%"; // リセット
+  },400);
+
+  img.classList.remove("fx-evo");
+  void img.offsetWidth;
+  img.classList.add("fx-evo");
+}
+
+
+// ===== ミッション（同時達成数↑）=====
+function render(box, onDone){
+  box.innerHTML="";
+  pick(TASKS,4).forEach(()=>{ // ←同時4件
+    const m=weightedPick();
+    const d=document.createElement("div");
+    d.className="mission";
+    d.innerHTML=`<strong>${m}</strong><button class="big ok">達成</button>`;
+    d.querySelector("button").onclick=()=>onDone(d);
+    box.appendChild(d);
+  });
+}
+function takeDept(){
+  render(document.getElementById("dept-ms"), (d)=>{
+    d.remove();
+    myXp += 5;
+    addDeptXp();
+    updMy();
+  });
+}
+function takeMy(){
+  render(document.getElementById("my-ms"), (d)=>{
+    d.remove(); myXp+=10; updMy();
+  });
+}
+
+function addDeptXp(){
+  fetch(GAS_URL + "?action=add")
+    .then(r => r.text())
+    .then(v => {
+      deptXp = Number(v) || deptXp;
+      updDept();
+    })
+    .catch(e => console.error(e));
+}
+
+// ===== 操作 =====
+function setMyType(t){ myType=t; updMy(); }
+function rebirth(){
+  if(!confirm("転生しますか？（注）成長度は0になります。")) return;
+  myXp=0; reb++; updMy();
+}
+
+// ===== 初期化 =====
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzVBgYmZzzFY0PzugvDMesFBd7KUEnc7FMPlmvpjlMvzckBt8Egn7xBgsLDpSVVf2uJzw/exec";
+
+function loadDeptXp(){
+  fetch(GAS_URL + "?action=get")
+    .then(r => r.text())
+    .then(v => {
+      deptXp = Number(v) || 0;
+      updDept();
+    });
+}
+(function(){
+  myXp=+localStorage.getItem("myXp")||0;
+  myType=localStorage.getItem("myType")||"inu";
+  reb=+localStorage.getItem("reb")||0;
+
+  loadDeptXp();
+  updMy();
+})();
+</script>
+</body>
+</html>
