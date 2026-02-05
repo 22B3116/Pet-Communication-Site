@@ -211,6 +211,7 @@ function takeDept(){
     d.remove();
     myXp += 1;
     addDeptXp();
+    saveMy();
     updMy();
   });
 }
@@ -234,7 +235,7 @@ function addDeptXp(){
 function setMyType(t){ myType=t; updMy(); }
 function rebirth(){
   if(!confirm("転生しますか？（注）成長度は0になります。")) return;
-  myXp=0; reb++; updMy();
+  myXp=0; reb++; saveMy(); updMy();
 }
 
 // ===== 初期化 =====
