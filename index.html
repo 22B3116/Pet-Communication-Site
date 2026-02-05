@@ -209,14 +209,14 @@ function render(box, onDone){
 function takeDept(){
   render(document.getElementById("dept-ms"), (d)=>{
     d.remove();
-    myXp += 5;
+    myXp += 1;
     addDeptXp();
     updMy();
   });
 }
 function takeMy(){
   render(document.getElementById("my-ms"), (d)=>{
-    d.remove(); myXp+=10; updMy();
+    d.remove(); myXp+=10; saveMy(); updMy();
   });
 }
 
@@ -256,6 +256,12 @@ function loadDeptXp(){
   loadDeptXp();
   updMy();
 })();
+
+function saveMy(){
+  localStorage.setItem("myXp", myXp);
+  localStorage.setItem("myType", myType);
+  localStorage.setItem("reb", reb);
+}
 </script>
 </body>
 </html>
